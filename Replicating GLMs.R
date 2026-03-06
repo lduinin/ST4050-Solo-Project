@@ -11,21 +11,15 @@ learn$VehPowerGLM <- as.factor(pmin(learn$VehPower, 9))
 test$VehPowerGLM <- as.factor(pmin(test$VehPower, 9))
 
 # VehAge: 3 categorical classes [0,1), [1,10], (10,∞)
-VehAgeGLM <- cbind(c(0:110), c(1, rep(2, 10), rep(3, 100)))
-learn$VehAgeGLM <- as.factor(VehAgeGLM[learn$VehAge + 1, 2])
-test$VehAgeGLM <- as.factor(VehAgeGLM[test$VehAge + 1, 2])
-learn[, "VehAgeGLM"] <- relevel(learn[, "VehAgeGLM"], ref = "2")
-test[, "VehAgeGLM"] <- relevel(test[, "VehAgeGLM"], ref = "2")
+learn$VehAgeGLM <- factor(VehAgeGLM[learn$VehAge + 1, 2], levels = c("2", "1", "3"))
+test$VehAgeGLM  <- factor(VehAgeGLM[test$VehAge + 1, 2],  levels = c("2", "1", "3"))
 
 # DrivAge: 7 categorical classes
 DrivAgeGLM <- cbind(c(18:100), c(rep(1, 21-18), rep(2, 26-21), rep(3, 31-26), 
                                  rep(4, 41-31), rep(5, 51-41), rep(6, 71-51), 
                                  rep(7, 100-71+1)))
-learn$DrivAgeGLM <- as.factor(DrivAgeGLM[learn$DrivAge - 17, 2])
-test$DrivAgeGLM <- as.factor(DrivAgeGLM[test$DrivAge - 17, 2])
-learn[, "DrivAgeGLM"] <- relevel(learn[, "DrivAgeGLM"], ref = "5")
-test[, "DrivAgeGLM"] <- relevel(test[, "DrivAgeGLM"], ref = "5")
-
+learn$DrivAgeGLM <- factor(DrivAgeGLM[learn$DrivAge - 17, 2], levels = c("5","1","2","3","4","6","7"))
+test$DrivAgeGLM  <- factor(DrivAgeGLM[test$DrivAge - 17, 2],  levels = c("5","1","2","3","4","6","7"))
 # BonusMalus: continuous (capped at 150)
 learn$BonusMalusGLM <- as.integer(pmin(learn$BonusMalus, 150))
 test$BonusMalusGLM <- as.integer(pmin(test$BonusMalus, 150))
@@ -35,9 +29,8 @@ learn$DensityGLM <- as.numeric(log(learn$Density))
 test$DensityGLM <- as.numeric(log(test$Density))
 
 # Region: categorical (set reference to R24)
-learn[, "Region"] <- relevel(learn[, "Region"], ref = "R24")
-test[, "Region"] <- relevel(test[, "Region"], ref = "R24")
-
+learn$Region <- factor(learn$Region, levels = c("R24", setdiff(levels(learn$Region), "R24")))
+test$Region  <- factor(test$Region,  levels = c("R24", setdiff(levels(test$Region), "R24")))
 # ==============================================================================
 # 7. FIT GLM MODELS (Section 3.2, Pages 15-18)
 # ==============================================================================

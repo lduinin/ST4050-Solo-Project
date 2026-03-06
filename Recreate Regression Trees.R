@@ -39,7 +39,7 @@ print(tree1)
 
 # Plot the tree
 pdf("tree_rt1.pdf", width = 14, height = 10)
-rpart.plot(tree1, type = 3, extra = 101, under = TRUE, fallen.leaves = TRUE,
+rpart.plot(tree1, type = 0, extra = 101,cex =0.7, under = FALSE, fallen.leaves = TRUE,
            main = "Model RT1: Regression Tree (K=12 leaves)")
 dev.off()
 
