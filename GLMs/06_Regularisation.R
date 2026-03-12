@@ -153,13 +153,11 @@ cv_ridge <- cv.glmnet(x = X_learn, y = y_learn, family = "poisson",
                        type.measure = "deviance")
 
 # --- Lasso (alpha = 1) ---
-set.seed(100)
 cv_lasso <- cv.glmnet(x = X_learn, y = y_learn, family = "poisson",
                        offset = offset_learn, alpha = 1, nfolds = 5,
                        type.measure = "deviance")
 
 # --- Elastic Net (alpha = 0.5) ---
-set.seed(100)
 cv_enet <- cv.glmnet(x = X_learn, y = y_learn, family = "poisson",
                       offset = offset_learn, alpha = 0.5, nfolds = 5,
                       type.measure = "deviance")
@@ -168,7 +166,6 @@ cv_enet <- cv.glmnet(x = X_learn, y = y_learn, family = "poisson",
 alphas <- seq(0, 1, by = 0.1)
 alpha_results <- data.frame(alpha = alphas, min_cv_deviance = NA)
 
-set.seed(100)
 for (i in seq_along(alphas)) {
   cv_fit <- cv.glmnet(x = X_learn, y = y_learn, family = "poisson",
                        offset = offset_learn, alpha = alphas[i], nfolds = 5,
@@ -180,7 +177,7 @@ best_alpha <- alpha_results$alpha[which.min(alpha_results$min_cv_deviance)]
 print(alpha_results)
 
 # Refit with best alpha
-set.seed(100)
+
 cv_best <- cv.glmnet(x = X_learn, y = y_learn, family = "poisson",
                       offset = offset_learn, alpha = best_alpha, nfolds = 5,
                       type.measure = "deviance")
@@ -238,7 +235,7 @@ combined <- rbind(
              stringsAsFactors = FALSE)
 )
 combined <- combined[order(combined$out_sample), ]
-print(combined, row.names = FALSE)
+print(combined, row.names = FALSE) 
 
 # ==============================================================================
 # PART 5: VISUALISATIONS
