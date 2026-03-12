@@ -1,0 +1,6 @@
+"Step","Interactions","AIC","OutOfSample","pvalue"
+"Step 1","VehAgeGLM:VehBrand",251773,31.88622,"1.62e-269"
+"Step 2","VehAgeGLM:VehBrand + VehAgeGLM:VehGas",251209,31.80042,"6.21e-124"
+"Step 3","VehAgeGLM:VehBrand + VehAgeGLM:VehGas + VehAgeGLM:Region",251150,31.8064,"4.97e-13"
+"Step 4","VehAgeGLM:VehBrand + VehAgeGLM:VehGas + VehAgeGLM:Region + VehPowerGLM:VehAgeGLM",250704,31.75837,"1.04e-93"
+"Step 5","VehAgeGLM:VehBrand + VehAgeGLM:VehGas + VehAgeGLM:Region + VehPowerGLM:VehAgeGLM + VehPowerGLM:VehBrand",250675,31.76102,"6.62e-09"
