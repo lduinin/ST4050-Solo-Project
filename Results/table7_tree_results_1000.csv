@@ -1,0 +1,4 @@
+"Model","Runtime","Parameters","InSample","OutOfSample"
+"Homogeneous","–",1,32.93518,33.86149
+"Model RT_1000","58s",71,34.87992,35.74677
+"Model GLM1","20s",49,31.26738,32.17123
