@@ -28,10 +28,17 @@ fit_spline_models <- function(data, spline_var, df_values) {
       formula <- as.formula(paste0("ClaimNb ~ ns(", spline_var, ", df = ", d, ")"))
     }
     
-    model <- glm(formula, family = poisson(), data = data, offset = log(Exposure))
-    results$AIC[i]      <- AIC(model)
-    results$BIC[i]      <- BIC(model)
-    results$Deviance[i] <- deviance(model)
+    fit <- tryCatch(
+      glm(formula, family = poisson(), data = data, offset = log(Exposure)),
+      error = function(e) NULL
+    )
+    
+    if (!is.null(fit)) {
+      results$AIC[i]      <- AIC(fit)
+      results$BIC[i]      <- BIC(fit)
+      results$Deviance[i] <- deviance(fit)
+    }
+    # Rows where the fit failed stay as NA
   }
   
   return(results)
@@ -42,7 +49,7 @@ spline_drivage <- fit_spline_models(learn, "DrivAge", 1:5)
 print(spline_drivage)
 
 # BonusMalus spline selection
-spline_bm <- fit_spline_models(learn, "BonusMalusGLM", 1:3)
+spline_bm <- fit_spline_models(learn, "BonusMalusGLM", 1:5)
 print(spline_bm)
 
 # Density spline selection
