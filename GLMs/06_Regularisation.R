@@ -89,18 +89,19 @@ cv_formulas <- list(
   
   "GLM4 (interactions)" = ClaimNb ~ VehPowerGLM + VehAgeGLM + DrivAgeGLM + 
     BonusMalusGLM + VehBrand + VehGas + DensityGLM + Region + AreaGLM +
-    VehAgeGLM:VehBrand + DrivAgeGLM:BonusMalusGLM + VehGas:VehPowerGLM,
+    VehAgeGLM:VehBrand + VehAgeGLM:VehGas + VehPowerGLM:VehAgeGLM,
   
   "GLM5 (splines)" = ClaimNb ~ VehPowerGLM + VehAgeGLM + ns(DrivAge, df = 4) + 
     ns(BonusMalusGLM, df = 4) + VehBrand + VehGas + DensityGLM + Region + AreaGLM,
   
   "GLM6 (splines+interact)" = ClaimNb ~ VehPowerGLM + VehAgeGLM + 
     ns(DrivAge, df = 4) + ns(BonusMalusGLM, df = 4) + VehBrand + VehGas + 
-    DensityGLM + Region + AreaGLM + VehAgeGLM:VehBrand + VehGas:VehPowerGLM,
+    DensityGLM + Region + AreaGLM + VehAgeGLM:VehBrand + VehAgeGLM:VehGas +
+    VehPowerGLM:VehAgeGLM,
   
   "GLM8 (optimised)" = ClaimNb ~ VehPowerGLM + VehAgeGLM + ns(DrivAge, df = 4) + 
     ns(BonusMalusGLM, df = 4) + VehBrand + VehGas + DensityGLM + Region +
-    VehAgeGLM:VehBrand + VehGas:VehPowerGLM
+    VehAgeGLM:VehBrand + VehAgeGLM:VehGas + VehPowerGLM:VehAgeGLM
 )
 
 cv_results <- do.call(rbind, lapply(names(cv_formulas), function(model_nm) {
@@ -135,7 +136,7 @@ print(cv_results, row.names = FALSE)
 
 design_formula <- ~ VehPowerGLM + VehAgeGLM + ns(DrivAge, df = 4) + 
   ns(BonusMalusGLM, df = 4) + VehBrand + VehGas + DensityGLM + Region + AreaGLM +
-  VehAgeGLM:VehBrand + DrivAgeGLM:BonusMalusGLM + VehGas:VehPowerGLM
+  VehAgeGLM:VehBrand + VehAgeGLM:VehGas + VehPowerGLM:VehAgeGLM
 
 X_learn <- model.matrix(design_formula, data = learn)[, -1]
 X_test  <- model.matrix(design_formula, data = test)[, -1]

@@ -2,7 +2,20 @@
 # 04_Improve_GLMs.R — Improved GLMs (Interactions, Splines, Polynomials)
 # ==============================================================================
 # REQUIRES: benchmark_glms.RData from 03_Replicate_GLMs.R
+#           interaction_search.RData from 03b (optional, for reference)
 # OUTPUT: saves "improved_glms.RData" with all improved models added
+# ==============================================================================
+#
+# INTERACTION CHOICES (from 03b_Interaction_Search.R forward selection):
+#   Best out-of-sample combination:
+#     VehAgeGLM:VehBrand        (Step 1, AIC drop 1289, OOS 31.886)
+#     VehAgeGLM:VehGas          (Step 2, AIC drop  773, OOS 31.800)
+#     VehPowerGLM:VehAgeGLM     (Step 4, AIC drop  372, OOS 31.758)
+#
+#   Skipped (worsened out-of-sample when added):
+#     VehAgeGLM:Region          (Step 3, OOS went UP to 31.806)
+#     VehPowerGLM:VehBrand      (Step 5, OOS went UP to 31.761)
+#
 # ==============================================================================
 
 source("00_utils.R")
@@ -38,42 +51,41 @@ fit_spline_models <- function(data, spline_var, df_values) {
       results$BIC[i]      <- BIC(fit)
       results$Deviance[i] <- deviance(fit)
     }
-    # Rows where the fit failed stay as NA
   }
   
   return(results)
 }
 
-# DrivAge spline selection
+# DrivAge: df=4 has lowest AIC
 spline_drivage <- fit_spline_models(learn, "DrivAge", 1:5)
 print(spline_drivage)
 
-# BonusMalus spline selection
+# BonusMalus: df=4 has lowest AIC (df=2 fails due to concentration at 50)
 spline_bm <- fit_spline_models(learn, "BonusMalusGLM", 1:5)
 print(spline_bm)
 
-# Density spline selection
+# Density: minimal improvement over linear — keep linear
 spline_density <- fit_spline_models(learn, "DensityGLM", 1:5)
 print(spline_density)
 
 # ==============================================================================
-# MODEL GLM4: Interactions only
+# MODEL GLM4: Data-driven interactions only (no splines)
 # ==============================================================================
+# Uses the top 3 interactions from forward selection in 03b
 
 time_glm4_start <- Sys.time()
 glm4 <- glm(ClaimNb ~ VehPowerGLM + VehAgeGLM + DrivAgeGLM + BonusMalusGLM + 
                VehBrand + VehGas + DensityGLM + Region + AreaGLM +
-               VehAgeGLM:VehBrand +
-               DrivAgeGLM:BonusMalusGLM +
-               VehGas:VehPowerGLM,
+               VehAgeGLM:VehBrand +            # Rank 1: AIC drop 1289
+               VehAgeGLM:VehGas +              # Rank 2: AIC drop 773
+               VehPowerGLM:VehAgeGLM,          # Rank 3 (by forward selection)
              family = poisson(), data = learn, offset = log(Exposure))
 time_glm4 <- as.numeric(difftime(Sys.time(), time_glm4_start, units = "secs"))
 
 # ==============================================================================
-# MODEL GLM5: Natural splines for continuous variables
+# MODEL GLM5: Natural splines for continuous variables (no interactions)
 # ==============================================================================
-# Uses DrivAge df=4, BonusMalus df=4 (based on spline selection above)
-# DensityGLM kept linear (spline selection showed minimal improvement)
+# DrivAge df=4, BonusMalus df=4, DensityGLM kept linear
 
 time_glm5_start <- Sys.time()
 glm5 <- glm(ClaimNb ~ VehPowerGLM + VehAgeGLM + 
@@ -84,7 +96,7 @@ glm5 <- glm(ClaimNb ~ VehPowerGLM + VehAgeGLM +
 time_glm5 <- as.numeric(difftime(Sys.time(), time_glm5_start, units = "secs"))
 
 # ==============================================================================
-# MODEL GLM6: Splines + Interactions
+# MODEL GLM6: Splines + Data-driven interactions
 # ==============================================================================
 
 time_glm6_start <- Sys.time()
@@ -93,12 +105,13 @@ glm6 <- glm(ClaimNb ~ VehPowerGLM + VehAgeGLM +
                ns(BonusMalusGLM, df = 4) + 
                VehBrand + VehGas + DensityGLM + Region + AreaGLM +
                VehAgeGLM:VehBrand +
-               VehGas:VehPowerGLM,
+               VehAgeGLM:VehGas +
+               VehPowerGLM:VehAgeGLM,
              family = poisson(), data = learn, offset = log(Exposure))
 time_glm6 <- as.numeric(difftime(Sys.time(), time_glm6_start, units = "secs"))
 
 # ==============================================================================
-# MODEL GLM7: Polynomials (alternative to splines)
+# MODEL GLM7: Polynomials (alternative to splines, no interactions)
 # ==============================================================================
 
 time_glm7_start <- Sys.time()
@@ -112,8 +125,9 @@ glm7 <- glm(ClaimNb ~ VehPowerGLM + VehAgeGLM +
 time_glm7 <- as.numeric(difftime(Sys.time(), time_glm7_start, units = "secs"))
 
 # ==============================================================================
-# MODEL GLM8: Drop Area, keep splines + key interactions
+# MODEL GLM8: Best model — splines + data-driven interactions, drop Area
 # ==============================================================================
+# Area dropped: corr with Density is 0.98, removing it has negligible effect
 
 time_glm8_start <- Sys.time()
 glm8 <- glm(ClaimNb ~ VehPowerGLM + VehAgeGLM + 
@@ -121,19 +135,20 @@ glm8 <- glm(ClaimNb ~ VehPowerGLM + VehAgeGLM +
                ns(BonusMalusGLM, df = 4) + 
                VehBrand + VehGas + DensityGLM + Region +
                VehAgeGLM:VehBrand +
-               VehGas:VehPowerGLM,
+               VehAgeGLM:VehGas +
+               VehPowerGLM:VehAgeGLM,
              family = poisson(), data = learn, offset = log(Exposure))
 time_glm8 <- as.numeric(difftime(Sys.time(), time_glm8_start, units = "secs"))
 
 # ==============================================================================
-# RESULTS — ALL IMPROVED MODELS (including GLM7 this time)
+# RESULTS — ALL IMPROVED MODELS
 # ==============================================================================
 
-improved_models  <- list(glm4, glm5, glm6, glm7, glm8)
-improved_names   <- c("GLM4 (interactions)", "GLM5 (splines)", 
-                       "GLM6 (splines+interact)", "GLM7 (polynomials)",
-                       "GLM8 (optimised)")
-improved_times   <- c(time_glm4, time_glm5, time_glm6, time_glm7, time_glm8)
+improved_models <- list(glm4, glm5, glm6, glm7, glm8)
+improved_names  <- c("GLM4 (interactions)", "GLM5 (splines)", 
+                      "GLM6 (splines+interact)", "GLM7 (polynomials)",
+                      "GLM8 (optimised)")
+improved_times  <- c(time_glm4, time_glm5, time_glm6, time_glm7, time_glm8)
 
 improved_results <- do.call(rbind, lapply(seq_along(improved_models), function(i) {
   evaluate_model(improved_models[[i]], improved_names[i], learn, test, improved_times[i])
@@ -149,7 +164,7 @@ print(comparison, row.names = FALSE)
 # ANOVA COMPARISONS
 # ==============================================================================
 
-# GLM1 vs GLM4 (do interactions help?)
+# GLM1 vs GLM4 (do data-driven interactions help?)
 print(anova(glm1, glm4, test = "Chisq"))
 
 # GLM1 vs GLM5 (do splines help?)
