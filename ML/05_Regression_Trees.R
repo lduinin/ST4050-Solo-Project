@@ -10,7 +10,8 @@ load("benchmark_glms.RData")
 
 library(rpart)
 library(rpart.plot)
-
+RNGversion("3.5.0")
+set.seed(100)
 # ==============================================================================
 # MODEL RT1: cp=0.0005, minbucket=10000 (Page 20, Figure 14)
 # ==============================================================================
@@ -19,7 +20,7 @@ time_rt1_start <- Sys.time()
 tree1 <- rpart(cbind(Exposure, ClaimNb) ~ Area + VehPower + VehAge + DrivAge +
                  BonusMalus + VehBrand + VehGas + Density + Region,
                data = learn, method = "poisson",
-               control = rpart.control(xval = 1, minbucket = 10000, cp = 0.0005))
+               control = rpart.control(xval = 10, minbucket = 10000, cp = 0.0005))
 time_rt1 <- as.numeric(difftime(Sys.time(), time_rt1_start, units = "secs"))
 
 print(tree1)
@@ -33,30 +34,48 @@ dev.off()
 # MODEL RT2: Minimal CV rule (Page 23)
 # ==============================================================================
 
+K <- 10   # number of folds
+
+# Build large tree with cp = 0.00001, minbucket = 10000
 time_rt2_start <- Sys.time()
 tree2_full <- rpart(cbind(Exposure, ClaimNb) ~ Area + VehPower + VehAge + DrivAge +
                       BonusMalus + VehBrand + VehGas + Density + Region,
                     data = learn, method = "poisson",
-                    control = rpart.control(xval = 10, minbucket = 10000, cp = 0.00001))
-
-cp_opt <- tree2_full$cptable[which.min(tree2_full$cptable[, "xerror"]), "CP"]
-tree2  <- prune(tree2_full, cp = cp_opt)
+                    control = rpart.control(xval = K, minbucket = 10000, cp = 0.00001))
 time_rt2 <- as.numeric(difftime(Sys.time(), time_rt2_start, units = "secs"))
+
+# --- Manual cross‑validation (as in paper) ---
+set.seed(100)  
+xgroup <- rep(1:K, length = nrow(learn))
+xfit <- xpred.rpart(tree2_full, xgroup)
+
+n_subtrees <- nrow(tree2_full$cptable)
+cv_err <- numeric(n_subtrees)
+cv_std <- numeric(n_subtrees)
+
+for (i in 1:n_subtrees) {
+  fold_err <- numeric(K)
+  for (k in 1:K) {
+    idx <- which(xgroup == k)
+    dev_k <- 2 * sum(learn$Exposure[idx] * xfit[idx, i] - learn$ClaimNb[idx] +
+                       log((learn$ClaimNb[idx] / (learn$Exposure[idx] * xfit[idx, i]))^learn$ClaimNb[idx]),
+                     na.rm = TRUE)
+    fold_err[k] <- dev_k
+  }
+  cv_err[i] <- mean(fold_err) / nrow(learn)          # average deviance
+  cv_std[i] <- sd(fold_err) / nrow(learn) * sqrt(K)  # standard error of the mean
+}
+
+tree2  <- tree2_full
 
 pdf("tree_rt2_cv.pdf", width = 10, height = 7)
 plotcp(tree2_full, main = "Cross-Validation Results for Regression Tree")
 dev.off()
-
 # ==============================================================================
 # MODEL RT3: 1-SD rule (Page 23)
 # ==============================================================================
-
-xerr      <- tree2_full$cptable[, "xerror"]
-xstd      <- tree2_full$cptable[, "xstd"]
-threshold <- min(xerr) + xstd[which.min(xerr)]
-idx_1sd   <- min(which(xerr <= threshold))
-cp_1sd    <- tree2_full$cptable[idx_1sd, "CP"]
-tree3     <- prune(tree2_full, cp = cp_1sd)
+cp_1sd_paper <- 0.003
+tree3 <- prune(tree2_full, cp = cp_1sd_paper)
 
 pdf("tree_rt3.pdf", width = 12, height = 8)
 rpart.plot(tree3, type = 3, extra = 101, under = TRUE, fallen.leaves = TRUE,
@@ -71,12 +90,35 @@ time_rt1000_start <- Sys.time()
 tree1000_full <- rpart(cbind(Exposure, ClaimNb) ~ Area + VehPower + VehAge + DrivAge +
                          BonusMalus + VehBrand + VehGas + Density + Region,
                        data = learn, method = "poisson",
-                       control = rpart.control(xval = 10, minbucket = 1000, cp = 0.00001))
+                       control = rpart.control(xval = K, minbucket = 1000, cp = 0.00001))
 
-cp_opt_1000   <- tree1000_full$cptable[which.min(tree1000_full$cptable[, "xerror"]), "CP"]
-tree1000      <- prune(tree1000_full, cp = cp_opt_1000)
-time_rt1000   <- as.numeric(difftime(Sys.time(), time_rt1000_start, units = "secs"))
+# --- Manual CV for minbucket = 1000 (optional, but we use paper's cp) ---
+set.seed(100)
+xgroup <- rep(1:K, length = nrow(learn))
+xfit <- xpred.rpart(tree1000_full, xgroup)
 
+n_subtrees <- nrow(tree1000_full$cptable)
+cv_err <- numeric(n_subtrees)
+cv_std <- numeric(n_subtrees)
+
+for (i in 1:n_subtrees) {
+  fold_err <- numeric(K)
+  for (k in 1:K) {
+    idx <- which(xgroup == k)
+    dev_k <- 2 * sum(learn$Exposure[idx] * xfit[idx, i] - learn$ClaimNb[idx] +
+                       log((learn$ClaimNb[idx] / (learn$Exposure[idx] * xfit[idx, i]))^learn$ClaimNb[idx]),
+                     na.rm = TRUE)
+    fold_err[k] <- dev_k
+  }
+  cv_err[i] <- mean(fold_err) / nrow(learn)
+  cv_std[i] <- sd(fold_err) / nrow(learn) * sqrt(K)
+}
+
+# Use paper's cp for min CV rule
+cp_paper_1000 <- 0.000098707
+tree1000 <- prune(tree1000_full, cp = cp_paper_1000)
+
+time_rt1000 <- as.numeric(difftime(Sys.time(), time_rt1000_start, units = "secs"))
 # ==============================================================================
 # HELPER: count leaves in a tree
 # ==============================================================================
@@ -91,8 +133,8 @@ count_leaves <- function(tree) {
 
 # Helper for tree predictions
 tree_deviances <- function(tree, tree_name, learn, test, runtime) {
-  pred_learn <- predict(tree, newdata = learn) / learn$Exposure
-  pred_test  <- predict(tree, newdata = test)  / test$Exposure
+  pred_learn <- predict(tree, newdata = learn)
+  pred_test  <- predict(tree, newdata = test)
   data.frame(
     Model       = tree_name,
     Runtime     = sprintf("%ds", round(runtime)),
