@@ -1,0 +1,5 @@
+"Model","Runtime","Parameters","AIC","InSample","OutOfSample"
+"Homogeneous model","3s",1,263143,32.93518,33.86149
+"Model GLM1","20s",49,253062,31.26738,32.17123
+"Model GLM2","19s",48,253060,31.26742,32.17196
+"Model GLM3","14s",38,253108,31.27852,32.18196
