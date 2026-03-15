@@ -15,9 +15,6 @@ library(splines)
 # ==============================================================================
 # PART 1: OVERFITTING DIAGNOSTICS
 # ==============================================================================
-# Compare the GAP between in-sample and out-of-sample deviance.
-# A growing gap as parameters increase = overfitting.
-# ==============================================================================
 
 all_models <- list(
   "Homogeneous"             = glm_homog,
@@ -28,7 +25,8 @@ all_models <- list(
   "GLM5 (splines)"          = glm5,
   "GLM6 (splines+interact)" = glm6,
   "GLM7 (polynomials)"      = glm7,
-  "GLM8 (optimised)"        = glm8
+  "GLM8 (optimised)"        = glm8,
+  "GLM9 (3-way)"            = glm9
 )
 
 overfit_diag <- do.call(rbind, lapply(names(all_models), function(nm) {
@@ -49,7 +47,6 @@ overfit_diag <- do.call(rbind, lapply(names(all_models), function(nm) {
   )
 }))
 
-# Positive gap = out-of-sample worse than in-sample
 print(overfit_diag, row.names = FALSE)
 
 # --- Overfitting diagnostic plots ---
@@ -101,7 +98,12 @@ cv_formulas <- list(
   
   "GLM8 (optimised)" = ClaimNb ~ VehPowerGLM + VehAgeGLM + ns(DrivAge, df = 4) + 
     ns(BonusMalusGLM, df = 4) + VehBrand + VehGas + DensityGLM + Region +
-    VehAgeGLM:VehBrand + VehAgeGLM:VehGas + VehPowerGLM:VehAgeGLM
+    VehAgeGLM:VehBrand + VehAgeGLM:VehGas + VehPowerGLM:VehAgeGLM,
+  
+  "GLM9 (3-way)" = ClaimNb ~ VehPowerGLM + VehAgeGLM + ns(DrivAge, df = 4) + 
+    ns(BonusMalusGLM, df = 4) + VehBrand + VehGas + DensityGLM + Region +
+    VehAgeGLM:VehBrand + VehAgeGLM:VehGas + VehPowerGLM:VehAgeGLM +
+    VehAgeGLM:VehPowerGLM:VehGas
 )
 
 cv_results <- do.call(rbind, lapply(names(cv_formulas), function(model_nm) {
@@ -118,25 +120,17 @@ cv_results <- do.call(rbind, lapply(names(cv_formulas), function(model_nm) {
              CV_sd = round(sd(fold_deviances), 5), stringsAsFactors = FALSE)
 }))
 
-# Lower CV_mean = better generalisation
 print(cv_results, row.names = FALSE)
 
 # ==============================================================================
 # PART 3: REGULARISED GLMs WITH glmnet
 # ==============================================================================
-# Standard GLM minimises:    Deviance(beta)
-# Regularised GLM minimises: Deviance(beta) + lambda * Penalty(beta)
-#
-# Ridge  (alpha=0): Penalty = sum(beta^2)       — shrinks, never zeros
-# Lasso  (alpha=1): Penalty = sum(|beta|)       — shrinks AND zeros out
-# Elastic Net (0<alpha<1): Mix of both
-# ==============================================================================
-
-# --- Build design matrix (richest feature set) ---
+# Uses GLM9 formula (richest feature set including 3-way interaction)
 
 design_formula <- ~ VehPowerGLM + VehAgeGLM + ns(DrivAge, df = 4) + 
   ns(BonusMalusGLM, df = 4) + VehBrand + VehGas + DensityGLM + Region + AreaGLM +
-  VehAgeGLM:VehBrand + VehAgeGLM:VehGas + VehPowerGLM:VehAgeGLM
+  VehAgeGLM:VehBrand + VehAgeGLM:VehGas + VehPowerGLM:VehAgeGLM +
+  VehAgeGLM:VehPowerGLM:VehGas
 
 X_learn <- model.matrix(design_formula, data = learn)[, -1]
 X_test  <- model.matrix(design_formula, data = test)[, -1]
@@ -153,19 +147,25 @@ cv_ridge <- cv.glmnet(x = X_learn, y = y_learn, family = "poisson",
                        type.measure = "deviance")
 
 # --- Lasso (alpha = 1) ---
+set.seed(100)
 cv_lasso <- cv.glmnet(x = X_learn, y = y_learn, family = "poisson",
                        offset = offset_learn, alpha = 1, nfolds = 5,
                        type.measure = "deviance")
 
+lasso_coefs_min <- coef(cv_lasso, s = "lambda.min")
+lasso_coefs_1se <- coef(cv_lasso, s = "lambda.1se")
+
 # --- Elastic Net (alpha = 0.5) ---
+set.seed(100)
 cv_enet <- cv.glmnet(x = X_learn, y = y_learn, family = "poisson",
                       offset = offset_learn, alpha = 0.5, nfolds = 5,
                       type.measure = "deviance")
 
-# --- Search over alpha to find optimal mix ---
+# --- Alpha search ---
 alphas <- seq(0, 1, by = 0.1)
 alpha_results <- data.frame(alpha = alphas, min_cv_deviance = NA)
 
+set.seed(100)
 for (i in seq_along(alphas)) {
   cv_fit <- cv.glmnet(x = X_learn, y = y_learn, family = "poisson",
                        offset = offset_learn, alpha = alphas[i], nfolds = 5,
@@ -177,7 +177,7 @@ best_alpha <- alpha_results$alpha[which.min(alpha_results$min_cv_deviance)]
 print(alpha_results)
 
 # Refit with best alpha
-
+set.seed(100)
 cv_best <- cv.glmnet(x = X_learn, y = y_learn, family = "poisson",
                       offset = offset_learn, alpha = best_alpha, nfolds = 5,
                       type.measure = "deviance")
@@ -223,7 +223,7 @@ reg_results <- do.call(rbind, lapply(names(reg_models), function(nm) {
 
 print(reg_results, row.names = FALSE)
 
-# --- Combined: unregularised vs regularised, ranked by out-of-sample ---
+# --- Combined: unregularised vs regularised ---
 combined <- rbind(
   data.frame(Model = overfit_diag$Model, Type = "Unregularised",
              n_params = overfit_diag$n_params, in_sample = overfit_diag$in_sample,
@@ -235,7 +235,7 @@ combined <- rbind(
              stringsAsFactors = FALSE)
 )
 combined <- combined[order(combined$out_sample), ]
-print(combined, row.names = FALSE) 
+print(combined, row.names = FALSE)
 
 # ==============================================================================
 # PART 5: VISUALISATIONS
@@ -283,7 +283,7 @@ kept <- coef_df[coef_df$Coefficient != 0, ]
 kept <- kept[order(-abs(kept$Coefficient)), ]
 print(kept, row.names = FALSE)
 
-# Variables dropped (set to zero by Lasso)
+# Variables dropped
 dropped <- coef_df[coef_df$Coefficient == 0, ]
 print(dropped, row.names = FALSE)
 
@@ -293,6 +293,7 @@ print(dropped, row.names = FALSE)
 
 save(cv_ridge, cv_lasso, cv_enet, cv_best, best_alpha,
      overfit_diag, cv_results, reg_results, combined,
+     X_learn, X_test, offset_learn, offset_test,
      file = "regularisation_results.RData")
 
 write.csv(combined, "model_comparison_all.csv", row.names = FALSE)
