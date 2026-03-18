@@ -1,15 +1,16 @@
 "Model","Type","n_params","in_sample","out_sample","gap"
-"Elastic Net (lambda.min)","Regularised",80,30.79623,31.694,0.89776
-"Lasso (lambda.min)","Regularised",79,30.79594,31.69412,0.89818
-"Best alpha (lambda.min)","Regularised",79,30.79594,31.69412,0.89818
+"Lasso (lambda.min)","Regularised",94,30.7625,31.65122,0.88872
+"Best alpha (lambda.min)","Regularised",94,30.76278,31.65173,0.88895
+"Elastic Net (lambda.min)","Regularised",95,30.76392,31.65236,0.88844
+"GLM9 (3-way)","Unregularised",96,30.76127,31.65337,0.8921
+"Ridge (lambda.min)","Regularised",96,30.78059,31.67082,0.89023
 "GLM6 (splines+interact)","Unregularised",82,30.79533,31.69601,0.90068
 "GLM8 (optimised)","Unregularised",81,30.7954,31.69702,0.90161
-"Ridge (lambda.min)","Regularised",81,30.80335,31.70254,0.89919
-"Elastic Net (lambda.1se)","Regularised",29,30.87595,31.74984,0.8739
+"Best alpha (lambda.1se)","Regularised",29,30.87759,31.74503,0.86744
+"Elastic Net (lambda.1se)","Regularised",30,30.87944,31.74734,0.8679
+"Lasso (lambda.1se)","Regularised",26,30.88215,31.74811,0.86596
 "GLM4 (interactions)","Unregularised",81,30.88,31.75175,0.87175
-"Ridge (lambda.1se)","Regularised",81,30.88348,31.77081,0.88732
-"Lasso (lambda.1se)","Regularised",16,30.96267,31.84077,0.8781
-"Best alpha (lambda.1se)","Regularised",16,30.96267,31.84077,0.8781
+"Ridge (lambda.1se)","Regularised",96,30.87849,31.75922,0.88073
 "GLM5 (splines)","Unregularised",50,31.18318,32.11724,0.93406
 "GLM1 (benchmark)","Unregularised",49,31.26738,32.17123,0.90385
 "GLM2 (drop Area)","Unregularised",48,31.26742,32.17196,0.90455

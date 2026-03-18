@@ -1,0 +1,22 @@
+"Model","Type","OutOfSample","Gini_test","Calib_test"
+"RT_1000","Tree",31.50374,0.3031,0.9586
+"Lasso (lambda.min)","Regularised",31.65122,0.3054,0.9557
+"Elastic Net (lambda.min)","Regularised",31.65236,0.3053,0.9557
+"GLM9 (3-way)","GLM",31.65337,0.3049,0.96
+"GAM2 (smooth+interact)","GAM",31.66177,0.302,0.9591
+"Ridge (lambda.min)","Regularised",31.67082,0.3042,0.9557
+"RT2 (min CV)","Tree",31.69326,0.3008,0.9627
+"GLM6 (splines+interact)","GLM",31.69601,0.3027,0.9598
+"GLM8 (optimised)","GLM",31.69702,0.3026,0.9598
+"GLM10 (grouped regions)","GLM",31.70589,0.3015,0.9597
+"Elastic Net (lambda.1se)","Regularised",31.74734,0.2973,0.9557
+"Lasso (lambda.1se)","Regularised",31.74811,0.2968,0.9557
+"GLM4 (interactions)","GLM",31.75175,0.2988,0.9602
+"Ridge (lambda.1se)","Regularised",31.75922,0.3004,0.9563
+"RT1","Tree",31.79307,0.236,0.9622
+"RT3 (1-SD)","Tree",31.97508,0.1275,0.9625
+"GAM1 (smooth)","GAM",32.08262,0.2884,0.9604
+"GLM5 (splines)","GLM",32.11724,0.289,0.9609
+"GLM1 (benchmark)","GLM",32.17123,0.284,0.9613
+"GLM7 (polynomials)","GLM",32.23949,0.2765,0.9623
+"Homogeneous","GLM",33.86149,-0.1075,0.9626
